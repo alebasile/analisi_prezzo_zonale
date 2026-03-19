@@ -1,0 +1,1395 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Prezzi Zonali MGP — Analisi Calabria 2021–2026</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Syne:wght@400;600;700&display=swap');
+
+  :root {
+    --bg: #0f0f11;
+    --bg2: #17171a;
+    --bg3: #1e1e23;
+    --border: #2a2a32;
+    --border2: #3a3a45;
+    --text: #e8e6e0;
+    --text2: #9a9890;
+    --text3: #5a5856;
+    --accent: #e8c547;
+    --accent2: #c9a82a;
+    --red: #e05a4e;
+    --teal: #4ec9b0;
+    --blue: #5a9fd4;
+    --orange: #e0874e;
+    --purple: #9b72cf;
+    --green: #6db56d;
+    --font-display: 'Syne', sans-serif;
+    --font-mono: 'IBM Plex Mono', monospace;
+    --radius: 8px;
+    --section-gap: 64px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--font-display);
+    font-size: 14px;
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  /* HEADER */
+  .report-header {
+    border-bottom: 1px solid var(--border);
+    padding: 40px 48px 32px;
+    position: relative;
+    overflow: hidden;
+  }
+  .report-header::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 60px,
+      rgba(232,197,71,0.03) 60px,
+      rgba(232,197,71,0.03) 61px
+    );
+    pointer-events: none;
+  }
+  .header-tag {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+  }
+  .header-title {
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.15;
+    color: var(--text);
+    margin-bottom: 8px;
+  }
+  .header-sub {
+    color: var(--text2);
+    font-size: 15px;
+    margin-bottom: 24px;
+  }
+  .header-meta {
+    display: flex;
+    gap: 32px;
+    flex-wrap: wrap;
+  }
+  .meta-item {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .meta-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .meta-value {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--accent);
+  }
+
+  /* LAYOUT */
+  .main {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 48px 80px;
+  }
+
+  /* LOADING */
+  #loading-screen {
+    position: fixed;
+    inset: 0;
+    background: var(--bg);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    gap: 16px;
+  }
+  .loading-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--text2);
+    letter-spacing: 0.1em;
+  }
+  .loading-bar {
+    width: 240px;
+    height: 2px;
+    background: var(--border);
+    border-radius: 2px;
+    overflow: hidden;
+  }
+  .loading-fill {
+    height: 100%;
+    background: var(--accent);
+    width: 0%;
+    transition: width 0.3s;
+  }
+  .error-box {
+    background: rgba(224,90,78,0.1);
+    border: 1px solid var(--red);
+    border-radius: var(--radius);
+    padding: 24px 32px;
+    max-width: 480px;
+    text-align: center;
+  }
+  .error-box h3 { color: var(--red); margin-bottom: 8px; }
+  .error-box p { color: var(--text2); font-size: 13px; font-family: var(--font-mono); }
+
+  /* KPI TABLE */
+  .kpi-section {
+    padding: 40px 0 0;
+  }
+  .kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1px;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    overflow: hidden;
+    margin-top: 20px;
+  }
+  .kpi-card {
+    background: var(--bg2);
+    padding: 20px 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .kpi-card-year {
+    background: var(--bg3);
+    grid-column: 1 / -1;
+    padding: 8px 24px;
+    display: flex;
+    gap: 48px;
+    align-items: center;
+    border-top: 1px solid var(--border);
+  }
+  .kpi-year-label {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--accent);
+    min-width: 48px;
+  }
+  .kpi-row-values {
+    display: flex;
+    gap: 48px;
+    flex-wrap: wrap;
+  }
+  .kpi-inline {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .kpi-inline .kpi-label { font-family: var(--font-mono); font-size: 10px; color: var(--text3); text-transform: uppercase; letter-spacing: 0.08em; }
+  .kpi-inline .kpi-val { font-family: var(--font-mono); font-size: 13px; color: var(--text); }
+
+  /* SECTION */
+  .section {
+    margin-top: var(--section-gap);
+    padding-top: var(--section-gap);
+    border-top: 1px solid var(--border);
+  }
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    margin-bottom: 8px;
+  }
+  .section-num {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    letter-spacing: 0.1em;
+  }
+  .section-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+  }
+  .section-desc {
+    color: var(--text2);
+    font-size: 14px;
+    line-height: 1.7;
+    max-width: 760px;
+    margin-bottom: 24px;
+  }
+
+  /* FILTERS */
+  .filters-bar {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 16px 20px;
+    margin-bottom: 28px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    align-items: flex-start;
+  }
+  .filter-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .filter-label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+  }
+  .pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+  }
+  .pill {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    border: 1px solid var(--border2);
+    color: var(--text2);
+    background: var(--bg3);
+    cursor: pointer;
+    transition: all 0.15s;
+    user-select: none;
+  }
+  .pill:hover { border-color: var(--accent); color: var(--accent); }
+  .pill.active { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 500; }
+  .threshold-group {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .threshold-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+  }
+  .threshold-row input[type=range] {
+    width: 140px;
+    accent-color: var(--accent);
+  }
+  .threshold-val {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    color: var(--accent);
+    min-width: 72px;
+  }
+
+  /* CHARTS */
+  .charts-grid {
+    display: grid;
+    gap: 24px;
+  }
+  .charts-grid-2 { grid-template-columns: 1fr 1fr; }
+  .charts-grid-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .charts-grid-1 { grid-template-columns: 1fr; }
+
+  .chart-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+  .chart-card.full { grid-column: 1 / -1; }
+  .chart-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text);
+    letter-spacing: 0.02em;
+  }
+  .chart-desc {
+    font-size: 12px;
+    color: var(--text2);
+    line-height: 1.6;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+  .chart-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .chart-wrap canvas { width: 100% !important; }
+
+  /* HEATMAP */
+  .heatmap-wrap {
+    overflow-x: auto;
+  }
+  .heatmap-svg {
+    display: block;
+    width: 100%;
+  }
+
+  /* SMALL MULTIPLES */
+  .small-multiples {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+  }
+  .sm-card {
+    background: var(--bg3);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px;
+  }
+  .sm-title {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--accent);
+    margin-bottom: 8px;
+  }
+  .sm-canvas-wrap { position: relative; }
+
+  /* VIOLIN */
+  .violin-wrap svg { width: 100%; display: block; }
+
+  /* AUTOCORR */
+  .autocorr-note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text3);
+    margin-top: 8px;
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .main { padding: 0 20px 60px; }
+    .report-header { padding: 24px 20px; }
+    .charts-grid-2, .charts-grid-3 { grid-template-columns: 1fr; }
+    .header-title { font-size: 24px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="loading-screen">
+  <div class="loading-label">Caricamento dati in corso...</div>
+  <div class="loading-bar"><div class="loading-fill" id="loading-fill"></div></div>
+  <div class="loading-label" id="loading-detail" style="color:var(--text3)">Lettura CSV</div>
+</div>
+
+<header class="report-header">
+  <div class="header-tag">Mercato del Giorno Prima · MGP · Analisi zonale</div>
+  <h1 class="header-title">Prezzi Zonali Calabria<br>2021 – 2026</h1>
+  <p class="header-sub">Evoluzione strutturale del prezzo, impatto fotovoltaico e analisi BESS</p>
+  <div class="header-meta">
+    <div class="meta-item"><span class="meta-label">Zona</span><span class="meta-value" id="meta-zone">Calabria · Italia</span></div>
+    <div class="meta-item"><span class="meta-label">Righe</span><span class="meta-value" id="meta-rows">—</span></div>
+    <div class="meta-item"><span class="meta-label">Periodo</span><span class="meta-value" id="meta-period">—</span></div>
+    <div class="meta-item"><span class="meta-label">Aggiornato</span><span class="meta-value" id="meta-updated">—</span></div>
+  </div>
+</header>
+
+<main class="main">
+
+  <!-- ⓪ KPI -->
+  <section class="kpi-section">
+    <div class="section-header">
+      <span class="section-num">00</span>
+      <h2 class="section-title">Riepilogo KPI per anno</h2>
+    </div>
+    <p class="section-desc">Statistiche sintetiche per anno sul prezzo Calabria. P10 e P90 delimitano il range di prezzo "normale", escludendo gli estremi. Le ore negative e le ore sotto soglia (20 €/MWh) danno una misura immediata della penetrazione del fotovoltaico nel mercato.</p>
+    <div id="kpi-table"></div>
+  </section>
+
+  <!-- ① ALLINEAMENTO -->
+  <section class="section" id="s1">
+    <div class="section-header">
+      <span class="section-num">01</span>
+      <h2 class="section-title">Allineamento Italia / Calabria</h2>
+    </div>
+    <p class="section-desc">Le due zone si muovono insieme per la maggior parte del tempo, ma si separano in presenza di congestione sulla rete di trasmissione. Lo scatter mostra la correlazione complessiva; le tre heatmap isolano lo spread nelle tre dimensioni temporali — utile per capire quando e quanto la Calabria diverge dal prezzo nazionale.</p>
+    <div class="filters-bar" id="f1">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f1-anni"></div></div>
+      <div class="filter-group"><div class="filter-label">Mese</div><div class="pills" id="f1-mesi"></div></div>
+    </div>
+    <div class="charts-grid charts-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Scatter R² — Italia vs Calabria (€/MWh)</div>
+        <div class="chart-wrap" style="height:320px"><canvas id="c1-scatter"></canvas></div>
+        <div class="chart-desc">Ogni punto è un'ora. I punti vicini alla diagonale indicano allineamento perfetto. I punti che si discostano verso il basso (Calabria &lt; Italia) segnalano ore di congestione sulla rete, tipicamente nelle ore solari estive quando il surplus rinnovabile del Sud non riesce a raggiungere il Nord.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Spread medio mensile — Italia meno Calabria (€/MWh)</div>
+        <div class="chart-wrap" style="height:320px"><canvas id="c1-spread-mese"></canvas></div>
+        <div class="chart-desc">Lo spread mensile rivela stagionalità chiara: i mesi estivi mostrano spread più elevati perché la produzione solare calabrese è abbondante ma la capacità di esportazione è limitata. Un trend crescente negli anni indica un peggioramento strutturale della congestione.</div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Heatmap spread Anno × Ora — Italia meno Calabria (€/MWh)</div>
+        <div class="heatmap-wrap" id="hm1-wrap"></div>
+        <div class="chart-desc">Combinando anno e ora si vede esattamente in quale fascia oraria la congestione è più acuta. Le ore 11–15 degli anni più recenti mostrano spread crescenti: è la firma dell'oversupply solare calabrese che non trova sbocco verso Nord. Il numero in ogni cella indica quante ore in quel bin hanno spread positivo (Calabria sotto Italia).</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② OVERVIEW -->
+  <section class="section" id="s2">
+    <div class="section-header">
+      <span class="section-num">02</span>
+      <h2 class="section-title">Overview Calabria</h2>
+    </div>
+    <p class="section-desc">Panoramica del prezzo Calabria attraverso tre lenti: la fascia oraria (F1/F2/F3), il profilo mensile e il profilo intraday anno su anno. Il 2022 è escluso di default per via dello shock energetico post-invasione ucraina che distorce le scale e oscura i trend strutturali.</p>
+    <div class="filters-bar" id="f2">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f2-anni"></div></div>
+      <div class="filter-group"><div class="filter-label">Mese</div><div class="pills" id="f2-mesi"></div></div>
+    </div>
+    <div class="charts-grid charts-grid-3">
+      <div class="chart-card">
+        <div class="chart-title">Prezzo medio per fascia oraria e anno</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c2-fasce"></canvas></div>
+        <div class="chart-desc">F1 (8–19h lun–ven) è la fascia tradizionalmente più cara. Negli anni recenti il differenziale F1/F3 si riduce perché il solare abbassa i prezzi diurni proprio nelle ore F1. Un F1 che scende verso F3 è il segnale più diretto del fenomeno di cannibalizzazione.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Prezzo medio mensile per anno (€/MWh)</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c2-mensile"></canvas></div>
+        <div class="chart-desc">Il profilo mensile mostra la stagionalità del prezzo. Storicamente i mesi invernali erano più cari per la domanda di riscaldamento. Con la crescita del solare, i mesi estivi mostrano una compressione crescente del prezzo, con l'estate 2024–2025 che raggiunge minimi sempre più pronunciati.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Profilo orario medio per anno — duck curve (€/MWh)</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c2-duck"></canvas></div>
+        <div class="chart-desc">Il grafico chiave per il fotovoltaico. La "conca" nelle ore 10–15 si approfondisce di anno in anno: è la duck curve italiana. Se la depressione diventa sempre più profonda, lo spread tra ore solari e picco serale (18–21h) aumenta, rendendo l'accumulo economicamente più interessante.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ③ DISTRIBUZIONE -->
+  <section class="section" id="s3">
+    <div class="section-header">
+      <span class="section-num">03</span>
+      <h2 class="section-title">Distribuzione statistica</h2>
+    </div>
+    <p class="section-desc">Guardare solo la media nasconde la storia più importante: la distribuzione del prezzo sta cambiando forma. La coda bassa si allarga, le ore a prezzo bassissimo aumentano, e la distribuzione diventa bimodale. Questi grafici mostrano il fenomeno in tre formati complementari.</p>
+    <div class="filters-bar" id="f3">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f3-anni"></div></div>
+      <div class="filter-group"><div class="filter-label">Mese</div><div class="pills" id="f3-mesi"></div></div>
+      <div class="threshold-group">
+        <div class="filter-label">Soglia prezzo basso</div>
+        <div class="threshold-row">
+          <input type="range" id="thr3" min="0" max="100" value="20" step="5">
+          <span class="threshold-val" id="thr3-val">20 €/MWh</span>
+        </div>
+      </div>
+    </div>
+    <div class="charts-grid charts-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Boxplot mensile — distribuzione prezzi Calabria</div>
+        <div class="chart-wrap" style="height:340px"><canvas id="c3-boxplot"></canvas></div>
+        <div class="chart-desc">Il boxplot mensile mostra mediana, interquartile range e outlier per ogni mese. I mesi estivi mostrano una mediana più bassa e outlier verso lo zero sempre più frequenti. I whisker lunghi verso l'alto nei mesi invernali indicano alta variabilità in presenza di picchi di domanda.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Stacked bar — peso delle fasce di prezzo per anno (%)</div>
+        <div class="chart-wrap" style="height:340px"><canvas id="c3-stacked"></canvas></div>
+        <div class="chart-desc">Ogni barra somma al 100%. Si legge immediatamente come le fasce &lt;50 €/MWh guadagnino peso anno dopo anno a scapito delle fasce alte. Il 2022 spicca per il peso anomalo della fascia &gt;200 €/MWh. Il trend 2023–2025 mostra uno spostamento strutturale verso il basso della distribuzione.</div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Price duration curve — ore/anno per soglia di prezzo</div>
+        <div class="chart-wrap" style="height:320px"><canvas id="c3-pdc"></canvas></div>
+        <div class="chart-desc">La price duration curve è il grafico classico dell'analisi di mercato elettrico. Sull'asse X il prezzo soglia, sull'asse Y il numero di ore annue in cui il prezzo è inferiore. La curva che scende più ripidamente indica anni con più ore a basso prezzo. L'area tra la curva dell'anno più recente e quella del 2021 rappresenta il "prezzo perso" dall'impianto solare senza accumulo.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ④ SPAZIO-TEMPORALE -->
+  <section class="section" id="s4">
+    <div class="section-header">
+      <span class="section-num">04</span>
+      <h2 class="section-title">Struttura spazio-temporale</h2>
+    </div>
+    <p class="section-desc">Tre heatmap che mostrano il prezzo nelle sue dimensioni temporali combinando mese, ora e anno. In ogni cella è annotato il numero di ore in cui il prezzo è rimasto sotto la soglia configurata. Il colore va dal blu scuro (prezzi alti) al giallo (prezzi bassi) per rendere immediatamente visibili le zone critiche.</p>
+    <div class="filters-bar" id="f4">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f4-anni"></div></div>
+      <div class="threshold-group">
+        <div class="filter-label">Soglia annotazione n ore</div>
+        <div class="threshold-row">
+          <input type="range" id="thr4" min="0" max="100" value="20" step="5">
+          <span class="threshold-val" id="thr4-val">20 €/MWh</span>
+        </div>
+      </div>
+    </div>
+    <div class="charts-grid charts-grid-1">
+      <div class="chart-card">
+        <div class="chart-title">Heatmap Mese × Ora — prezzo medio Calabria (€/MWh)</div>
+        <div class="heatmap-wrap" id="hm4-mo"></div>
+        <div class="chart-desc">La stagionalità media aggregata su tutti gli anni selezionati. Le ore 11–15 di giugno–agosto sono sistematicamente le più economiche. Le ore 18–20 di dicembre–gennaio sono le più care. Questa struttura definisce la strategia ottimale di carica/scarica per una batteria.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Heatmap Anno × Mese — come cambia la stagionalità nel tempo</div>
+        <div class="heatmap-wrap" id="hm4-am"></div>
+        <div class="chart-desc">A differenza della heatmap precedente, questa mostra come la stagionalità stessa stia evolvendo. I mesi estivi diventano progressivamente più gialli (prezzi più bassi) negli anni recenti. Il 2022 è visivamente anomalo per i valori estremi. Il trend conferma che il fenomeno di cannibalizzazione solare si sta accelerando.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Heatmap Anno × Ora — evoluzione del profilo intraday</div>
+        <div class="heatmap-wrap" id="hm4-ao"></div>
+        <div class="chart-desc">Mostra come il profilo di prezzo delle singole ore stia cambiando anno dopo anno. L'ora 13 che diventa sempre più chiara (gialla) è la firma del solare. Le ore 19–21 che restano scure (care) confermano che il picco serale non è ancora stato intaccato — è lì che la batteria si scarica.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑤ PREZZI BASSI -->
+  <section class="section" id="s5">
+    <div class="section-header">
+      <span class="section-num">05</span>
+      <h2 class="section-title">Prezzi bassi, negativi e volatilità</h2>
+    </div>
+    <p class="section-desc">Questa sezione quantifica il rischio di "asset inutilizzato": quante ore il prezzo è così basso da rendere non conveniente l'immissione diretta in rete. Con l'aumento delle installazioni rinnovabili il fenomeno è in accelerazione. L'autocorrelazione indica poi per quante ore consecutive i prezzi tendono a restare bassi — dato chiave per il dimensionamento della capacità di accumulo.</p>
+    <div class="filters-bar" id="f5">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f5-anni"></div></div>
+      <div class="filter-group"><div class="filter-label">Mese</div><div class="pills" id="f5-mesi"></div></div>
+      <div class="filter-group"><div class="filter-label">Ora del giorno</div><div class="pills" id="f5-ore"></div></div>
+      <div class="threshold-group">
+        <div class="filter-label">Soglia prezzo basso</div>
+        <div class="threshold-row">
+          <input type="range" id="thr5" min="0" max="100" value="20" step="5">
+          <span class="threshold-val" id="thr5-val">20 €/MWh</span>
+        </div>
+      </div>
+    </div>
+    <div class="charts-grid charts-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Ore annuali sotto soglia — conteggio assoluto</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="c5-ore-abs"></canvas></div>
+        <div class="chart-desc">Il conteggio assoluto mostra la crescita in termini di ore di mancata remunerazione. Ogni barra rappresenta un anno; l'altezza è il numero di ore in cui il prezzo Calabria è rimasto sotto la soglia impostata. Il trend crescente è il segnale più diretto dell'accelerazione della cannibalizzazione.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">% ore annuali sotto soglia — con etichetta n ore</div>
+        <div class="chart-wrap" style="height:260px"><canvas id="c5-ore-pct"></canvas></div>
+        <div class="chart-desc">La percentuale normalizza il confronto tra anni (2026 è parziale). Le etichette mostrano il numero assoluto di ore per leggere entrambe le dimensioni in un solo grafico. Un valore superiore al 10–15% suggerisce che la strategia di immissione totale senza accumulo sta diventando inefficiente.</div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Small multiples — distribuzione mensile delle ore sotto soglia per anno</div>
+        <div class="small-multiples" id="c5-sm"></div>
+        <div class="chart-desc">Ogni pannello mostra un anno. L'altezza delle barre per mese rivela in quale stagione si concentra il problema. Tipicamente i mesi di maggio–agosto mostrano i picchi più alti di ore sotto soglia, con una finestra che si allarga progressivamente negli anni più recenti verso aprile e settembre.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Volatilità oraria — deviazione standard e CV per ora del giorno</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c5-vol"></canvas></div>
+        <div class="chart-desc">Il coefficiente di variazione (CV = std/media) misura la volatilità relativa. Le ore con CV alto sono meno prevedibili — richiedono una strategia di accumulo più conservativa. Tipicamente le ore di transizione (7–9h e 17–20h) mostrano i CV più alti perché il prezzo può muoversi rapidamente in risposta alle condizioni atmosferiche.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Autocorrelazione — persistenza dei prezzi bassi (lag 1–8 ore)</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c5-autocorr"></canvas></div>
+        <div class="chart-desc">Probabilità condizionale che il prezzo sia sotto soglia all'ora t+k dato che lo era all'ora t. Se la barra a lag 4 è ancora alta (&gt;60%), una batteria da 4h è giustificata; se crolla già a lag 2, è sufficiente una capacità da 2h. Ogni linea rappresenta un anno diverso.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ⑥ ACCUMULO -->
+  <section class="section" id="s6">
+    <div class="section-header">
+      <span class="section-num">06</span>
+      <h2 class="section-title">Focus accumulo e cannibalizzazione PV</h2>
+    </div>
+    <p class="section-desc">Questa sezione quantifica direttamente il valore economico dell'accumulo. Il delta tra prezzo nelle ore solari e picco serale misura quanto guadagnerebbe una batteria che carica di giorno e scarica la sera. Se il delta supera i 50–80 €/MWh in modo stabile, l'ammortamento dell'investimento diventa sostenibile.</p>
+    <div class="filters-bar" id="f6">
+      <div class="filter-group"><div class="filter-label">Anno</div><div class="pills" id="f6-anni"></div></div>
+      <div class="filter-group"><div class="filter-label">Mese</div><div class="pills" id="f6-mesi"></div></div>
+      <div class="threshold-group">
+        <div class="filter-label">Soglia cannibalizzazione</div>
+        <div class="threshold-row">
+          <input type="range" id="thr6" min="0" max="100" value="20" step="5">
+          <span class="threshold-val" id="thr6-val">20 €/MWh</span>
+        </div>
+      </div>
+    </div>
+    <div class="charts-grid charts-grid-2">
+      <div class="chart-card">
+        <div class="chart-title">Value erosion solare — prezzo ore 10–15h vs media totale per anno</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c6-erosion"></canvas></div>
+        <div class="chart-desc">Due linee: il prezzo medio nelle ore solari (10–15h) e il prezzo medio complessivo. Il gap tra le due è il "valore perso" dall'impianto fotovoltaico che immette nelle ore di picco solare. Man mano che il gap si allarga, la necessità di accumulo diventa più urgente economicamente.</div>
+      </div>
+      <div class="chart-card">
+        <div class="chart-title">Delta solar/non-solar — spread picco serale vs ore solari (€/MWh)</div>
+        <div class="chart-wrap" style="height:280px"><canvas id="c6-delta"></canvas></div>
+        <div class="chart-desc">Il delta mensile tra prezzo medio ore 19–21h e prezzo medio ore 9–17h. È il margine lordo teorico per ciclo di una batteria che carica durante la produzione solare e scarica al picco serale. Sopra la linea tratteggiata a 50 €/MWh il business case diventa sostenibile per sistemi BESS di taglia utility.</div>
+      </div>
+      <div class="chart-card full">
+        <div class="chart-title">Price duration curve solare — ore 9–17h per anno (€/MWh)</div>
+        <div class="chart-wrap" style="height:300px"><canvas id="c6-pdc-solar"></canvas></div>
+        <div class="chart-desc">La price duration curve calcolata solo sulle ore di produzione solare (9–17h). L'area sotto la curva degli anni più recenti si restringe verso sinistra: significa che le ore solari portano prezzi sempre più bassi. La distanza tra la curva 2021 e quella 2025 quantifica la perdita di valore del fotovoltaico senza accumulo.</div>
+      </div>
+    </div>
+  </section>
+
+</main>
+
+<script>
+// ─── UTILS ───────────────────────────────────────────────────────────────────
+const MONTHS = ['Gen','Feb','Mar','Apr','Mag','Giu','Lug','Ago','Set','Ott','Nov','Dic'];
+const YEAR_COLORS = {
+  2021: '#5a9fd4', 2022: '#e05a4e', 2023: '#4ec9b0',
+  2024: '#e8c547', 2025: '#9b72cf', 2026: '#e0874e'
+};
+const FASCIA_COLORS = ['#5a9fd4','#e8c547','#4ec9b0'];
+
+Chart.defaults.color = '#9a9890';
+Chart.defaults.borderColor = '#2a2a32';
+Chart.defaults.font.family = "'IBM Plex Mono', monospace";
+Chart.defaults.font.size = 11;
+
+function fmt(v, dec=1) {
+  if (v == null || isNaN(v)) return '—';
+  return v.toFixed(dec).replace('.',',');
+}
+function pct(v, total) { return total > 0 ? (v/total*100).toFixed(1)+'%' : '—'; }
+function avg(arr) { return arr.length ? arr.reduce((a,b)=>a+b,0)/arr.length : null; }
+function std(arr) {
+  const m = avg(arr);
+  if (m==null) return 0;
+  return Math.sqrt(arr.reduce((a,b)=>a+(b-m)**2,0)/arr.length);
+}
+function quantile(arr, q) {
+  const s = [...arr].sort((a,b)=>a-b);
+  const pos = q*(s.length-1);
+  const lo = Math.floor(pos), hi = Math.ceil(pos);
+  return s[lo] + (s[hi]-s[lo])*(pos-lo);
+}
+
+// ─── CHART FACTORY ───────────────────────────────────────────────────────────
+const charts = {};
+function makeChart(id, type, data, options={}) {
+  const canvas = document.getElementById(id);
+  if (!canvas) return;
+  if (charts[id]) { charts[id].destroy(); delete charts[id]; }
+  const ctx = canvas.getContext('2d');
+  charts[id] = new Chart(ctx, {type, data, options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: { legend: { labels: { usePointStyle: true, pointStyleWidth: 8, padding: 12, font:{size:11} } }, tooltip: { backgroundColor:'#17171a', borderColor:'#3a3a45', borderWidth:1, titleColor:'#e8e6e0', bodyColor:'#9a9890', padding:10 } },
+    ...options
+  }});
+  return charts[id];
+}
+
+// ─── HEATMAP ─────────────────────────────────────────────────────────────────
+function makeHeatmap(containerId, rowLabels, colLabels, matrix, countMatrix, title, rowTitle, colTitle) {
+  const container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = '';
+
+  const cellW = 52, cellH = 36, padL = 52, padT = 28, padR = 8, padB = 24;
+  const W = padL + colLabels.length * cellW + padR;
+  const H = padT + rowLabels.length * cellH + padB;
+
+  const vals = matrix.flat().filter(v=>v!=null);
+  const vMin = Math.min(...vals), vMax = Math.max(...vals);
+  const colorScale = d3.scaleSequential(d3.interpolateRdYlBu).domain([vMax, vMin]);
+
+  const svg = d3.select(container).append('svg')
+    .attr('width','100%').attr('viewBox',`0 0 ${W} ${H}`)
+    .style('display','block');
+
+  // col labels
+  svg.selectAll('.col-label').data(colLabels).enter().append('text')
+    .attr('class','col-label')
+    .attr('x',(d,i)=>padL+i*cellW+cellW/2)
+    .attr('y',padT-6)
+    .attr('text-anchor','middle')
+    .attr('font-size',10).attr('fill','#5a5856')
+    .attr('font-family','IBM Plex Mono')
+    .text(d=>d);
+
+  // row labels
+  svg.selectAll('.row-label').data(rowLabels).enter().append('text')
+    .attr('class','row-label')
+    .attr('x',padL-6).attr('y',(d,i)=>padT+i*cellH+cellH/2+1)
+    .attr('text-anchor','end').attr('dominant-baseline','middle')
+    .attr('font-size',10).attr('fill','#5a5856')
+    .attr('font-family','IBM Plex Mono')
+    .text(d=>d);
+
+  // cells
+  rowLabels.forEach((row,ri)=>{
+    colLabels.forEach((col,ci)=>{
+      const val = matrix[ri]?.[ci];
+      const cnt = countMatrix?.[ri]?.[ci] ?? 0;
+      if (val==null) return;
+      const g = svg.append('g');
+      g.append('rect')
+        .attr('x',padL+ci*cellW+1).attr('y',padT+ri*cellH+1)
+        .attr('width',cellW-2).attr('height',cellH-2)
+        .attr('rx',3).attr('fill',colorScale(val));
+      // price value
+      const lum = d3.hsl(colorScale(val)).l;
+      const textCol = lum > 0.5 ? '#1e1e23' : '#e8e6e0';
+      g.append('text')
+        .attr('x',padL+ci*cellW+cellW/2).attr('y',padT+ri*cellH+cellH/2-4)
+        .attr('text-anchor','middle').attr('dominant-baseline','middle')
+        .attr('font-size',9).attr('fill',textCol).attr('font-weight','500')
+        .attr('font-family','IBM Plex Mono')
+        .text(val!=null?Math.round(val):'');
+      // count annotation
+      if (cnt > 0) {
+        g.append('text')
+          .attr('x',padL+ci*cellW+cellW/2).attr('y',padT+ri*cellH+cellH/2+8)
+          .attr('text-anchor','middle').attr('dominant-baseline','middle')
+          .attr('font-size',8).attr('fill',lum>0.5?'#444441':'#9a9890')
+          .attr('font-family','IBM Plex Mono')
+          .text(`(${cnt}h)`);
+      }
+    });
+  });
+}
+
+// ─── FILTER STATE ────────────────────────────────────────────────────────────
+const filterState = {};
+function initFilter(sectionId, key, values, defaultActive, onUpdate) {
+  const k = `${sectionId}-${key}`;
+  if (!filterState[k]) filterState[k] = new Set(defaultActive ?? values);
+  const container = document.getElementById(`f${sectionId}-${key === 'years' ? 'anni' : key === 'months' ? 'mesi' : 'ore'}`);
+  if (!container) return;
+  container.innerHTML = '';
+  values.forEach(v => {
+    const pill = document.createElement('div');
+    pill.className = 'pill' + (filterState[k].has(v) ? ' active' : '');
+    pill.textContent = key === 'months' ? MONTHS[v-1] : v;
+    pill.addEventListener('click', () => {
+      if (filterState[k].has(v)) {
+        if (filterState[k].size > 1) filterState[k].delete(v);
+      } else {
+        filterState[k].add(v);
+      }
+      pill.classList.toggle('active', filterState[k].has(v));
+      onUpdate();
+    });
+    container.appendChild(pill);
+  });
+}
+function getFilter(sectionId, key) {
+  return filterState[`${sectionId}-${key}`] ?? new Set();
+}
+function initThreshold(inputId, valId, defaultVal, onUpdate) {
+  const inp = document.getElementById(inputId);
+  const val = document.getElementById(valId);
+  if (!inp || !val) return;
+  inp.value = defaultVal;
+  val.textContent = defaultVal + ' €/MWh';
+  inp.addEventListener('input', () => {
+    val.textContent = inp.value + ' €/MWh';
+    onUpdate();
+  });
+}
+function getThreshold(inputId) {
+  const el = document.getElementById(inputId);
+  return el ? parseFloat(el.value) : 20;
+}
+
+// ─── DATA STORE ──────────────────────────────────────────────────────────────
+let ALL_ROWS = []; // [{year,month,hour,it,cal}]
+let YEARS = [], MONTHS_AVAIL = [], ALL_HOURS = [];
+const HR = Array.from({length:24},(_,i)=>i+1);
+const MO = Array.from({length:12},(_,i)=>i+1);
+
+// ─── PARSE CSV ───────────────────────────────────────────────────────────────
+function parseCSV(text) {
+  const lines = text.trim().split(/\r?\n/);
+  const header = lines[0].split(',').map(h=>h.trim().replace(/"/g,'').toLowerCase());
+  
+  // detect column indices flexibly
+  let iDate=-1, iHour=-1, iIt=-1, iCal=-1;
+  header.forEach((h,i)=>{
+    if (h.includes('data') || h.includes('date')) iDate=i;
+    else if (h.includes('ora') || h.includes('hour')) iHour=i;
+    else if (h.includes('italia') && !h.includes('calabria')) iIt=i;
+    else if (h.includes('calabria')) iCal=i;
+  });
+  // fallback: positional
+  if (iDate<0) iDate=0;
+  if (iHour<0) iHour=1;
+  if (iIt<0) iIt=2;
+  if (iCal<0) iCal=3;
+
+  const rows = [];
+  for (let i=1;i<lines.length;i++) {
+    const parts = lines[i].split(',');
+    if (parts.length < 4) continue;
+    const dateStr = parts[iDate]?.trim().replace(/"/g,'');
+    const hourRaw = parts[iHour]?.trim().replace(/"/g,'');
+    const itRaw = parts[iIt]?.trim().replace(/"/g,'').replace(',','.');
+    const calRaw = parts[iCal]?.trim().replace(/"/g,'').replace(',','.');
+    if (!dateStr || !hourRaw) continue;
+    // parse date dd/mm/yyyy or yyyy-mm-dd
+    let year, month;
+    const dmY = dateStr.match(/^(\d{1,2})[\/-](\d{1,2})[\/-](\d{4})/);
+    const Ymd = dateStr.match(/^(\d{4})[\/-](\d{1,2})[\/-](\d{1,2})/);
+    if (dmY) { month=parseInt(dmY[2]); year=parseInt(dmY[3]); }
+    else if (Ymd) { year=parseInt(Ymd[1]); month=parseInt(Ymd[2]); }
+    else continue;
+    const hour = parseInt(hourRaw);
+    const it = parseFloat(itRaw);
+    const cal = parseFloat(calRaw);
+    if (isNaN(year)||isNaN(month)||isNaN(hour)) continue;
+    rows.push({year,month,hour,it:isNaN(it)?null:it,cal:isNaN(cal)?null:cal});
+  }
+  return rows;
+}
+
+function filterRows(rows, years, months, hours) {
+  return rows.filter(r=>
+    (!years||years.size===0||years.has(r.year)) &&
+    (!months||months.size===0||months.has(r.month)) &&
+    (!hours||hours.size===0||hours.has(r.hour))
+  );
+}
+
+// ─── KPI ─────────────────────────────────────────────────────────────────────
+function renderKPI() {
+  const container = document.getElementById('kpi-table');
+  const thr = 20;
+  let html = '<div class="kpi-grid">';
+  // header row
+  html += `<div class="kpi-card-year" style="background:var(--bg3);border-top:none">
+    <span class="kpi-year-label">Anno</span>
+    <div class="kpi-row-values">
+      <div class="kpi-inline"><span class="kpi-label">Media</span></div>
+      <div class="kpi-inline"><span class="kpi-label">Mediana</span></div>
+      <div class="kpi-inline"><span class="kpi-label">P10</span></div>
+      <div class="kpi-inline"><span class="kpi-label">P90</span></div>
+      <div class="kpi-inline"><span class="kpi-label">Ore ≤0</span></div>
+      <div class="kpi-inline"><span class="kpi-label">Ore ≤20€</span></div>
+      <div class="kpi-inline"><span class="kpi-label">% ≤20€</span></div>
+    </div></div>`;
+  YEARS.forEach(y=>{
+    const yr = ALL_ROWS.filter(r=>r.year===y && r.cal!=null).map(r=>r.cal);
+    if (!yr.length) return;
+    const m=avg(yr), med=quantile(yr,0.5), p10=quantile(yr,0.1), p90=quantile(yr,0.9);
+    const neg=yr.filter(v=>v<=0).length, low=yr.filter(v=>v<=thr).length;
+    html += `<div class="kpi-card-year">
+      <span class="kpi-year-label">${y}</span>
+      <div class="kpi-row-values">
+        <div class="kpi-inline"><span class="kpi-val">${fmt(m)} €</span></div>
+        <div class="kpi-inline"><span class="kpi-val">${fmt(med)} €</span></div>
+        <div class="kpi-inline"><span class="kpi-val" style="color:var(--teal)">${fmt(p10)} €</span></div>
+        <div class="kpi-inline"><span class="kpi-val" style="color:var(--orange)">${fmt(p90)} €</span></div>
+        <div class="kpi-inline"><span class="kpi-val" style="color:var(--red)">${neg}</span></div>
+        <div class="kpi-inline"><span class="kpi-val" style="color:var(--accent)">${low}</span></div>
+        <div class="kpi-inline"><span class="kpi-val" style="color:var(--accent)">${pct(low,yr.length)}</span></div>
+      </div></div>`;
+  });
+  html += '</div>';
+  container.innerHTML = html;
+}
+
+// ─── SECTION 1 ───────────────────────────────────────────────────────────────
+function renderS1() {
+  const years = getFilter(1,'years'), months = getFilter(1,'months');
+  const rows = filterRows(ALL_ROWS, years, months, null).filter(r=>r.it!=null&&r.cal!=null);
+
+  // scatter (sample for perf)
+  const sample = rows.filter((_,i)=>i%5===0);
+  makeChart('c1-scatter','scatter',{
+    datasets: YEARS.filter(y=>years.has(y)).map(y=>({
+      label: String(y),
+      data: sample.filter(r=>r.year===y).map(r=>({x:r.it,y:r.cal})),
+      backgroundColor: YEAR_COLORS[y]+'88',
+      pointRadius: 2, pointHoverRadius: 4,
+    }))
+  },{
+    scales:{
+      x:{title:{display:true,text:'Italia (€/MWh)',color:'#5a5856'},grid:{color:'#2a2a32'}},
+      y:{title:{display:true,text:'Calabria (€/MWh)',color:'#5a5856'},grid:{color:'#2a2a32'}}
+    }
+  });
+
+  // spread mensile
+  const spreadByYearMonth = {};
+  rows.forEach(r=>{
+    const k=`${r.year}-${r.month}`;
+    if(!spreadByYearMonth[k]) spreadByYearMonth[k]=[];
+    spreadByYearMonth[k].push(r.it-r.cal);
+  });
+  makeChart('c1-spread-mese','bar',{
+    labels: MONTHS,
+    datasets: YEARS.filter(y=>years.has(y)).map(y=>({
+      label: String(y),
+      data: MO.map(m=>{ const k=`${y}-${m}`; const v=spreadByYearMonth[k]; return v?avg(v):null; }),
+      backgroundColor: YEAR_COLORS[y]+'99',
+      borderColor: YEAR_COLORS[y],
+      borderWidth: 1,
+    }))
+  },{scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'Spread €/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // heatmap anno x ora
+  const ysArr = [...years].sort();
+  const spreadMatrix = ysArr.map(y=>HR.map(h=>{
+    const vals = rows.filter(r=>r.year===y&&r.hour===h).map(r=>r.it-r.cal);
+    return vals.length?avg(vals):null;
+  }));
+  const countMatrix = ysArr.map(y=>HR.map(h=>{
+    return rows.filter(r=>r.year===y&&r.hour===h&&(r.it-r.cal)>0).length;
+  }));
+  makeHeatmap('hm1-wrap', ysArr.map(String), HR.map(String), spreadMatrix, countMatrix,'Spread','Anno','Ora');
+}
+
+// ─── SECTION 2 ───────────────────────────────────────────────────────────────
+function renderS2() {
+  const years = getFilter(2,'years'), months = getFilter(2,'months');
+  const rows = filterRows(ALL_ROWS, years, months, null).filter(r=>r.cal!=null);
+
+  // fasce F1(8-19 lun-ven approx→or 8-19), F2(7,8,20-23), F3(rest)
+  function fascia(h) {
+    if (h>=8&&h<=19) return 'F1';
+    if ((h>=7&&h<=8)||(h>=20&&h<=23)) return 'F2';
+    return 'F3';
+  }
+  const fasciaData = {};
+  rows.forEach(r=>{
+    const f=fascia(r.hour);
+    if(!fasciaData[r.year]) fasciaData[r.year]={F1:[],F2:[],F3:[]};
+    fasciaData[r.year][f].push(r.cal);
+  });
+  makeChart('c2-fasce','bar',{
+    labels: YEARS.filter(y=>years.has(y)).map(String),
+    datasets: ['F1','F2','F3'].map((f,i)=>({
+      label: f,
+      data: YEARS.filter(y=>years.has(y)).map(y=>fasciaData[y]?avg(fasciaData[y][f]):null),
+      backgroundColor: FASCIA_COLORS[i]+'cc',
+      borderColor: FASCIA_COLORS[i],
+      borderWidth:1,
+    }))
+  },{scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // mensile
+  makeChart('c2-mensile','line',{
+    labels: MONTHS,
+    datasets: YEARS.filter(y=>years.has(y)).map(y=>({
+      label: String(y),
+      data: MO.map(m=>{const v=rows.filter(r=>r.year===y&&r.month===m).map(r=>r.cal);return v.length?avg(v):null;}),
+      borderColor: YEAR_COLORS[y],
+      backgroundColor: YEAR_COLORS[y]+'22',
+      borderWidth:2, pointRadius:3, tension:0.3,
+    }))
+  },{scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // duck curve
+  makeChart('c2-duck','line',{
+    labels: HR.map(String),
+    datasets: YEARS.filter(y=>years.has(y)).map(y=>({
+      label: String(y),
+      data: HR.map(h=>{const v=rows.filter(r=>r.year===y&&r.hour===h).map(r=>r.cal);return v.length?avg(v):null;}),
+      borderColor: YEAR_COLORS[y],
+      backgroundColor: YEAR_COLORS[y]+'22',
+      borderWidth:2, pointRadius:2, tension:0.3,
+    }))
+  },{scales:{x:{title:{display:true,text:'Ora del giorno',color:'#5a5856'},grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+}
+
+// ─── SECTION 3 ───────────────────────────────────────────────────────────────
+function renderS3() {
+  const years = getFilter(3,'years'), months = getFilter(3,'months');
+  const thr = getThreshold('thr3');
+  const rows = filterRows(ALL_ROWS, years, months, null).filter(r=>r.cal!=null);
+
+  // boxplot by month (simulate with min/q1/med/q3/max as bar groups)
+  const bpData = MO.map(m=>{
+    const vals = rows.filter(r=>r.month===m).map(r=>r.cal);
+    if(!vals.length) return null;
+    return {min:quantile(vals,0),q1:quantile(vals,0.25),med:quantile(vals,0.5),q3:quantile(vals,0.75),max:quantile(vals,0.9)};
+  });
+  makeChart('c3-boxplot','bar',{
+    labels: MONTHS,
+    datasets:[
+      {label:'P10–P25',data:bpData.map(d=>d?[d.min,d.q1]:null),backgroundColor:'#5a9fd444',borderColor:'#5a9fd4',borderWidth:1,borderSkipped:false},
+      {label:'P25–P50',data:bpData.map(d=>d?[d.q1,d.med]:null),backgroundColor:'#5a9fd488',borderColor:'#5a9fd4',borderWidth:1,borderSkipped:false},
+      {label:'P50–P75',data:bpData.map(d=>d?[d.med,d.q3]:null),backgroundColor:'#e8c54788',borderColor:'#e8c547',borderWidth:1,borderSkipped:false},
+      {label:'P75–P90',data:bpData.map(d=>d?[d.q3,d.max]:null),backgroundColor:'#e8c54744',borderColor:'#e8c547',borderWidth:1,borderSkipped:false},
+    ]
+  },{scales:{x:{stacked:false,grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // stacked bar fasce
+  function fasciaBucket(v) {
+    if(v<0) return '<0';
+    if(v<50) return '0–50';
+    if(v<100) return '50–100';
+    if(v<200) return '100–200';
+    return '>200';
+  }
+  const buckets = ['<0','0–50','50–100','100–200','>200'];
+  const bucketColors = ['#e05a4e','#4ec9b0','#5a9fd4','#e8c547','#e0874e'];
+  const yrArr = YEARS.filter(y=>years.has(y));
+  const bucketData = {};
+  buckets.forEach(b=>bucketData[b]=yrArr.map(y=>{
+    const yr=rows.filter(r=>r.year===y);
+    return yr.length?yr.filter(r=>fasciaBucket(r.cal)===b).length/yr.length*100:0;
+  }));
+  makeChart('c3-stacked','bar',{
+    labels: yrArr.map(String),
+    datasets: buckets.map((b,i)=>({
+      label:b+' €/MWh', data:bucketData[b],
+      backgroundColor:bucketColors[i]+'cc', borderColor:bucketColors[i], borderWidth:1,
+    }))
+  },{scales:{x:{stacked:true,grid:{color:'#2a2a32'}},y:{stacked:true,max:100,title:{display:true,text:'%',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // price duration curve
+  const pdcPoints = 60;
+  const pdcRange = d3.range(0, 300, 5);
+  makeChart('c3-pdc','line',{
+    labels: pdcRange.map(String),
+    datasets: yrArr.map(y=>({
+      label: String(y),
+      data: pdcRange.map(thresh=>{
+        const yr=rows.filter(r=>r.year===y);
+        return yr.length?yr.filter(r=>r.cal<thresh).length:0;
+      }),
+      borderColor:YEAR_COLORS[y], backgroundColor:YEAR_COLORS[y]+'11',
+      borderWidth:2, pointRadius:0, tension:0.3, fill:false,
+    }))
+  },{scales:{
+    x:{title:{display:true,text:'Soglia prezzo (€/MWh)',color:'#5a5856'},grid:{color:'#2a2a32'},ticks:{maxTicksLimit:12}},
+    y:{title:{display:true,text:'Ore/anno sotto soglia',color:'#5a5856'},grid:{color:'#2a2a32'}}
+  }});
+}
+
+// ─── SECTION 4 ───────────────────────────────────────────────────────────────
+function renderS4() {
+  const years = getFilter(4,'years');
+  const thr = getThreshold('thr4');
+  const rows = filterRows(ALL_ROWS, years, null, null).filter(r=>r.cal!=null);
+  const yrArr = [...years].sort();
+
+  // HM: Mese x Ora
+  const mxo = MO.map(m=>HR.map(h=>{
+    const v=rows.filter(r=>r.month===m&&r.hour===h).map(r=>r.cal);
+    return v.length?avg(v):null;
+  }));
+  const mxo_cnt = MO.map(m=>HR.map(h=>rows.filter(r=>r.month===m&&r.hour===h&&r.cal<thr).length));
+  makeHeatmap('hm4-mo', MONTHS, HR.map(String), mxo, mxo_cnt, '', 'Mese','Ora');
+
+  // HM: Anno x Mese
+  const axm = yrArr.map(y=>MO.map(m=>{
+    const v=rows.filter(r=>r.year===y&&r.month===m).map(r=>r.cal);
+    return v.length?avg(v):null;
+  }));
+  const axm_cnt = yrArr.map(y=>MO.map(m=>rows.filter(r=>r.year===y&&r.month===m&&r.cal<thr).length));
+  makeHeatmap('hm4-am', yrArr.map(String), MONTHS, axm, axm_cnt,'','Anno','Mese');
+
+  // HM: Anno x Ora
+  const axo = yrArr.map(y=>HR.map(h=>{
+    const v=rows.filter(r=>r.year===y&&r.hour===h).map(r=>r.cal);
+    return v.length?avg(v):null;
+  }));
+  const axo_cnt = yrArr.map(y=>HR.map(h=>rows.filter(r=>r.year===y&&r.hour===h&&r.cal<thr).length));
+  makeHeatmap('hm4-ao', yrArr.map(String), HR.map(String), axo, axo_cnt,'','Anno','Ora');
+}
+
+// ─── SECTION 5 ───────────────────────────────────────────────────────────────
+function renderS5() {
+  const years = getFilter(5,'years'), months = getFilter(5,'months'), hours = getFilter(5,'hours');
+  const thr = getThreshold('thr5');
+  const rows = filterRows(ALL_ROWS, years, months, hours).filter(r=>r.cal!=null);
+  const yrArr = YEARS.filter(y=>years.has(y));
+
+  // ore abs
+  const oreAbs = yrArr.map(y=>rows.filter(r=>r.year===y&&r.cal<thr).length);
+  makeChart('c5-ore-abs','bar',{
+    labels: yrArr.map(String),
+    datasets:[{label:'Ore sotto soglia',data:oreAbs,backgroundColor:yrArr.map(y=>YEAR_COLORS[y]+'cc'),borderColor:yrArr.map(y=>YEAR_COLORS[y]),borderWidth:1}]
+  },{plugins:{legend:{display:false}},scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'Ore',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // ore pct con etichette
+  const orePct = yrArr.map(y=>{
+    const yr=rows.filter(r=>r.year===y);
+    const low=yr.filter(r=>r.cal<thr).length;
+    return yr.length?low/yr.length*100:0;
+  });
+  makeChart('c5-ore-pct','bar',{
+    labels: yrArr.map(String),
+    datasets:[{
+      label:'% ore sotto soglia',
+      data: orePct,
+      backgroundColor:yrArr.map(y=>YEAR_COLORS[y]+'cc'),
+      borderColor:yrArr.map(y=>YEAR_COLORS[y]),
+      borderWidth:1,
+    }]
+  },{
+    plugins:{
+      legend:{display:false},
+      datalabels:{display:false},
+      tooltip:{callbacks:{label:ctx=>{
+        const y=yrArr[ctx.dataIndex];
+        const n=rows.filter(r=>r.year===y&&r.cal<thr).length;
+        return `${ctx.parsed.y.toFixed(1)}%  (${n} ore)`;
+      }}}
+    },
+    scales:{x:{grid:{color:'#2a2a32'}},y:{max:100,title:{display:true,text:'%',color:'#5a5856'},grid:{color:'#2a2a32'}}},
+    animation:{onComplete:function(){
+      const ch=this;
+      const ctx=ch.ctx;
+      ctx.font='500 11px "IBM Plex Mono"';
+      ctx.textAlign='center';
+      ctx.textBaseline='bottom';
+      ctx.fillStyle='#e8e6e0';
+      ch.data.datasets[0].data.forEach((val,i)=>{
+        const y=yrArr[i];
+        const n=rows.filter(r=>r.year===y&&r.cal<thr).length;
+        const meta=ch.getDatasetMeta(0).data[i];
+        if(meta) ctx.fillText(`${n}h`,meta.x,meta.y-4);
+      });
+    }}
+  });
+
+  // small multiples
+  const smContainer = document.getElementById('c5-sm');
+  smContainer.innerHTML = '';
+  yrArr.forEach(y=>{
+    const card = document.createElement('div');
+    card.className = 'sm-card';
+    card.innerHTML = `<div class="sm-title">${y}</div><div class="sm-canvas-wrap" style="height:100px"><canvas id="sm-${y}"></canvas></div>`;
+    smContainer.appendChild(card);
+    const monthData = MO.map(m=>rows.filter(r=>r.year===y&&r.month===m&&r.cal<thr).length);
+    makeChart(`sm-${y}`,'bar',{
+      labels:MONTHS,
+      datasets:[{data:monthData,backgroundColor:YEAR_COLORS[y]+'cc',borderColor:YEAR_COLORS[y],borderWidth:1}]
+    },{plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.parsed.y} ore`}}},
+       scales:{x:{ticks:{font:{size:9}},grid:{color:'#2a2a32'}},y:{ticks:{font:{size:9}},grid:{color:'#2a2a32'}}}});
+  });
+
+  // volatilità oraria
+  const stdData = HR.map(h=>{
+    const v=rows.filter(r=>r.hour===h).map(r=>r.cal);
+    return v.length?std(v):null;
+  });
+  const avgData = HR.map(h=>{
+    const v=rows.filter(r=>r.hour===h).map(r=>r.cal);
+    return v.length?avg(v):null;
+  });
+  const cvData = HR.map((_,i)=>{
+    const s=stdData[i], m=avgData[i];
+    return (s!=null&&m!=null&&m!==0)?s/m*100:null;
+  });
+  makeChart('c5-vol','line',{
+    labels:HR.map(String),
+    datasets:[
+      {label:'Std Dev (€/MWh)',data:stdData,borderColor:'#5a9fd4',backgroundColor:'#5a9fd422',borderWidth:2,pointRadius:3,yAxisID:'y',tension:0.3},
+      {label:'CV (%)',data:cvData,borderColor:'#e8c547',backgroundColor:'#e8c54722',borderWidth:2,pointRadius:3,yAxisID:'y1',tension:0.3},
+    ]
+  },{scales:{
+    x:{title:{display:true,text:'Ora',color:'#5a5856'},grid:{color:'#2a2a32'}},
+    y:{title:{display:true,text:'Std Dev €/MWh',color:'#5a9fd4'},position:'left',grid:{color:'#2a2a32'}},
+    y1:{title:{display:true,text:'CV %',color:'#e8c547'},position:'right',grid:{drawOnChartArea:false}},
+  }});
+
+  // autocorrelazione
+  const LAGS = [1,2,3,4,5,6,7,8];
+  makeChart('c5-autocorr','line',{
+    labels:LAGS.map(l=>`+${l}h`),
+    datasets: yrArr.map(y=>{
+      const yr=rows.filter(r=>r.year===y).sort((a,b)=>a.month-b.month||a.hour-b.hour);
+      const calSeq=yr.map(r=>r.cal);
+      const belowSeq=calSeq.map(v=>v<thr?1:0);
+      return {
+        label:String(y),
+        data:LAGS.map(lag=>{
+          let num=0,den=0;
+          for(let i=0;i<belowSeq.length-lag;i++){
+            if(belowSeq[i]===1){den++;if(belowSeq[i+lag]===1)num++;}
+          }
+          return den>0?num/den*100:null;
+        }),
+        borderColor:YEAR_COLORS[y],backgroundColor:YEAR_COLORS[y]+'22',
+        borderWidth:2,pointRadius:4,tension:0.3,
+      };
+    })
+  },{scales:{
+    x:{title:{display:true,text:'Lag temporale',color:'#5a5856'},grid:{color:'#2a2a32'}},
+    y:{min:0,max:100,title:{display:true,text:'P(basso | basso t-0) %',color:'#5a5856'},grid:{color:'#2a2a32'},ticks:{callback:v=>v+'%'}},
+  }});
+}
+
+// ─── SECTION 6 ───────────────────────────────────────────────────────────────
+function renderS6() {
+  const years = getFilter(6,'years'), months = getFilter(6,'months');
+  const thr = getThreshold('thr6');
+  const rows = filterRows(ALL_ROWS, years, months, null).filter(r=>r.cal!=null);
+  const yrArr = YEARS.filter(y=>years.has(y));
+
+  // value erosion
+  const solarHours = [10,11,12,13,14,15];
+  makeChart('c6-erosion','line',{
+    labels: yrArr.map(String),
+    datasets:[
+      {label:'Prezzo medio ore 10–15h',data:yrArr.map(y=>{const v=rows.filter(r=>r.year===y&&solarHours.includes(r.hour)).map(r=>r.cal);return v.length?avg(v):null;}),borderColor:'#e8c547',backgroundColor:'#e8c54722',borderWidth:2,pointRadius:4,tension:0.2},
+      {label:'Prezzo medio totale',data:yrArr.map(y=>{const v=rows.filter(r=>r.year===y).map(r=>r.cal);return v.length?avg(v):null;}),borderColor:'#9a9890',backgroundColor:'transparent',borderWidth:2,pointRadius:4,tension:0.2,borderDash:[6,3]},
+    ]
+  },{scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}});
+
+  // delta solar/non-solar mensile
+  const peakHours=[19,20,21], solarH=[9,10,11,12,13,14,15,16,17];
+  const deltaData = MO.map(m=>{
+    const peakVals=rows.filter(r=>r.month===m&&peakHours.includes(r.hour)).map(r=>r.cal);
+    const solarVals=rows.filter(r=>r.month===m&&solarH.includes(r.hour)).map(r=>r.cal);
+    if(!peakVals.length||!solarVals.length) return null;
+    return avg(peakVals)-avg(solarVals);
+  });
+  makeChart('c6-delta','bar',{
+    labels: MONTHS,
+    datasets:[{
+      label:'Delta picco serale – ore solari (€/MWh)',
+      data:deltaData,
+      backgroundColor:deltaData.map(v=>v!=null&&v>50?'#4ec9b0cc':'#5a9fd4cc'),
+      borderColor:deltaData.map(v=>v!=null&&v>50?'#4ec9b0':'#5a9fd4'),
+      borderWidth:1,
+    }]
+  },{
+    plugins:{annotation:{annotations:{line50:{type:'line',yMin:50,yMax:50,borderColor:'#e8c547',borderWidth:1,borderDash:[4,4],label:{content:'50 €/MWh — soglia BESS',display:true,color:'#e8c547',font:{size:10}}}}}},
+    scales:{x:{grid:{color:'#2a2a32'}},y:{title:{display:true,text:'€/MWh',color:'#5a5856'},grid:{color:'#2a2a32'}}}
+  });
+
+  // PDC solare
+  const pdcRange = d3.range(0,250,5);
+  makeChart('c6-pdc-solar','line',{
+    labels:pdcRange.map(String),
+    datasets:yrArr.map(y=>({
+      label:String(y),
+      data:pdcRange.map(thresh=>{
+        const yr=rows.filter(r=>r.year===y&&solarH.includes(r.hour));
+        return yr.length?yr.filter(r=>r.cal<thresh).length:0;
+      }),
+      borderColor:YEAR_COLORS[y],backgroundColor:YEAR_COLORS[y]+'11',
+      borderWidth:2,pointRadius:0,tension:0.3,fill:false,
+    }))
+  },{scales:{
+    x:{title:{display:true,text:'Soglia prezzo (€/MWh)',color:'#5a5856'},grid:{color:'#2a2a32'},ticks:{maxTicksLimit:10}},
+    y:{title:{display:true,text:'Ore solari/anno sotto soglia',color:'#5a5856'},grid:{color:'#2a2a32'}}
+  }});
+}
+
+// ─── INIT FILTERS ────────────────────────────────────────────────────────────
+function initAllFilters() {
+  const defaultYearsNoShock = new Set(YEARS.filter(y=>y!==2022));
+
+  // S1
+  initFilter(1,'years',YEARS,YEARS,()=>renderS1());
+  initFilter(1,'months',MO,MO,()=>renderS1());
+  // S2 — default no 2022
+  initFilter(2,'years',YEARS,[...defaultYearsNoShock],()=>renderS2());
+  initFilter(2,'months',MO,MO,()=>renderS2());
+  // S3
+  initFilter(3,'years',YEARS,YEARS,()=>renderS3());
+  initFilter(3,'months',MO,MO,()=>renderS3());
+  initThreshold('thr3','thr3-val',20,()=>renderS3());
+  // S4
+  initFilter(4,'years',YEARS,YEARS,()=>renderS4());
+  initThreshold('thr4','thr4-val',20,()=>renderS4());
+  // S5
+  initFilter(5,'years',YEARS,YEARS,()=>renderS5());
+  initFilter(5,'months',MO,MO,()=>renderS5());
+  // ora filter for S5
+  const oreContainer = document.getElementById('f5-ore');
+  if (oreContainer) {
+    const oreGroups = [{label:'Notte (1–6)',hrs:[1,2,3,4,5,6]},{label:'Mattina (7–12)',hrs:[7,8,9,10,11,12]},{label:'Pomeriggio (13–18)',hrs:[13,14,15,16,17,18]},{label:'Sera (19–24)',hrs:[19,20,21,22,23,24]}];
+    if (!filterState['5-hours']) filterState['5-hours'] = new Set(HR);
+    oreGroups.forEach(og=>{
+      const pill=document.createElement('div');
+      pill.className='pill active';
+      pill.textContent=og.label;
+      pill.addEventListener('click',()=>{
+        const allIn=og.hrs.every(h=>filterState['5-hours'].has(h));
+        og.hrs.forEach(h=>allIn?filterState['5-hours'].delete(h):filterState['5-hours'].add(h));
+        pill.classList.toggle('active',!allIn);
+        renderS5();
+      });
+      oreContainer.appendChild(pill);
+    });
+  }
+  initThreshold('thr5','thr5-val',20,()=>renderS5());
+  // S6
+  initFilter(6,'years',YEARS,YEARS,()=>renderS6());
+  initFilter(6,'months',MO,MO,()=>renderS6());
+  initThreshold('thr6','thr6-val',20,()=>renderS6());
+}
+
+// ─── MAIN ────────────────────────────────────────────────────────────────────
+async function main() {
+  const fill = document.getElementById('loading-fill');
+  const detail = document.getElementById('loading-detail');
+
+  // try multiple filename patterns
+  const candidates = ['dati.csv','data.csv','prezzi.csv','prezzi_zonali.csv','MGP.csv','mgp.csv'];
+  let text = null;
+  for (const fname of candidates) {
+    try {
+      const r = await fetch(fname);
+      if (r.ok) { text = await r.text(); detail.textContent = `Caricato: ${fname}`; break; }
+    } catch(e){}
+    fill.style.width = (candidates.indexOf(fname)+1)/candidates.length*30+'%';
+  }
+
+  if (!text) {
+    document.getElementById('loading-screen').innerHTML = `
+      <div class="error-box">
+        <h3>CSV non trovato</h3>
+        <p>Assicurati che il file CSV sia nella stessa cartella dell'HTML.<br><br>
+        Nomi accettati:<br>${candidates.join(' · ')}</p>
+      </div>`;
+    return;
+  }
+
+  fill.style.width = '40%'; detail.textContent = 'Parsing dati...';
+  await new Promise(r=>setTimeout(r,10));
+
+  ALL_ROWS = parseCSV(text);
+  YEARS = [...new Set(ALL_ROWS.map(r=>r.year))].sort();
+
+  fill.style.width = '60%'; detail.textContent = 'Calcolo KPI...';
+  await new Promise(r=>setTimeout(r,10));
+
+  // update meta
+  document.getElementById('meta-rows').textContent = ALL_ROWS.length.toLocaleString('it-IT');
+  const minY=Math.min(...YEARS), maxY=Math.max(...YEARS);
+  document.getElementById('meta-period').textContent = `${minY}–${maxY}`;
+  document.getElementById('meta-updated').textContent = new Date().toLocaleDateString('it-IT');
+
+  renderKPI();
+  fill.style.width = '70%'; detail.textContent = 'Inizializzazione filtri...';
+  await new Promise(r=>setTimeout(r,10));
+
+  initAllFilters();
+  fill.style.width = '80%'; detail.textContent = 'Rendering grafici...';
+  await new Promise(r=>setTimeout(r,10));
+
+  renderS1(); renderS2(); renderS3(); renderS4(); renderS5(); renderS6();
+
+  fill.style.width = '100%';
+  await new Promise(r=>setTimeout(r,300));
+  document.getElementById('loading-screen').style.opacity = '0';
+  document.getElementById('loading-screen').style.transition = 'opacity 0.4s';
+  setTimeout(()=>document.getElementById('loading-screen').style.display='none',400);
+}
+
+main().catch(err=>{
+  document.getElementById('loading-screen').innerHTML=`
+    <div class="error-box">
+      <h3>Errore</h3>
+      <p>${err.message}</p>
+    </div>`;
+});
+</script>
+</body>
+</html>
